@@ -20,7 +20,6 @@ public class CatalogService {
     public void addProducts(String messageId, List<Product> products) {
         for (Product product : products) {
             try {
-                // Validation is handled by Jakarta Validation in the controller before reaching here.
                 catalogRepository.save(product);
             } catch (Exception e) {
                 log.error("messageId={} error saving product: {}", messageId, e.getMessage());
@@ -41,7 +40,6 @@ public class CatalogService {
         if (id == null || id.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "product ID cannot be empty");
         }
-
         return catalogRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "product not found"));
     }
@@ -50,13 +48,10 @@ public class CatalogService {
         if (id == null || id.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "product ID cannot be empty");
         }
-
         if (!catalogRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "product not found");
         }
-
-        updatedProduct.setId(id); // enforce matched ID
-
+        updatedProduct.setId(id);
         try {
             return catalogRepository.save(updatedProduct);
         } catch (Exception e) {
@@ -68,7 +63,6 @@ public class CatalogService {
         if (id == null || id.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "product ID cannot be empty");
         }
-
         try {
             catalogRepository.deleteById(id);
         } catch (Exception e) {

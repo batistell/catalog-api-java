@@ -1,8 +1,12 @@
 package com.batistell.catalogapi.controller;
 
+import com.batistell.catalogapi.model.CatalogAnalysisResponse;
+import com.batistell.catalogapi.model.CatalogReportResponse;
 import com.batistell.catalogapi.model.Product;
 import com.batistell.catalogapi.model.ProductResponse;
 import com.batistell.catalogapi.model.ErrorResponse;
+import com.batistell.catalogapi.service.CatalogAnalysisService;
+import com.batistell.catalogapi.service.CatalogReportService;
 import com.batistell.catalogapi.service.CatalogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +33,8 @@ import java.util.UUID;
 public class CatalogController {
 
     private final CatalogService catalogService;
+    private final CatalogReportService catalogReportService;
+    private final CatalogAnalysisService catalogAnalysisService;
 
     @Operation(summary = "Add new products", description = "Add new products to the catalog")
     @ApiResponses(value = {
@@ -42,12 +48,9 @@ public class CatalogController {
     @PostMapping(value = "/add", consumes = "application/json", produces = "application/json")
     public ResponseEntity<ProductResponse> addProduct(
             @RequestBody @Valid List<Product> products) {
-        
         String messageId = UUID.randomUUID().toString();
         log.info("messageId={} Starting AddProducts request", messageId);
-
         catalogService.addProducts(messageId, products);
-
         log.info("messageId={} AddProducts request completed successfully", messageId);
         return ResponseEntity.ok(new ProductResponse("Products added successfully", null));
     }
@@ -62,9 +65,7 @@ public class CatalogController {
     public ResponseEntity<List<Product>> getAllProducts() {
         String messageId = UUID.randomUUID().toString();
         log.info("messageId={} Starting GetAllProducts request", messageId);
-
         List<Product> products = catalogService.getAllProducts();
-
         log.info("messageId={} GetAllProducts request completed successfully", messageId);
         return ResponseEntity.ok(products);
     }
@@ -84,12 +85,9 @@ public class CatalogController {
     @GetMapping(value = "/products/{id}", produces = "application/json")
     public ResponseEntity<Product> getProductById(
             @Parameter(description = "Product ID", required = true) @PathVariable("id") String id) {
-        
         String messageId = UUID.randomUUID().toString();
         log.info("messageId={} Starting GetProductByID request", messageId);
-
         Product product = catalogService.getProductById(id);
-
         log.info("messageId={} GetProductByID request completed successfully", messageId);
         return ResponseEntity.ok(product);
     }
@@ -110,12 +108,9 @@ public class CatalogController {
     public ResponseEntity<ProductResponse> updateProduct(
             @Parameter(description = "Product ID", required = true) @PathVariable("id") String id,
             @RequestBody @Valid Product productToUpdate) {
-
         String messageId = UUID.randomUUID().toString();
         log.info("messageId={} Starting UpdateProduct request", messageId);
-
         Product updatedProduct = catalogService.updateProduct(id, productToUpdate);
-
         log.info("messageId={} UpdateProduct request completed successfully", messageId);
         return ResponseEntity.ok(new ProductResponse("Product updated successfully", updatedProduct));
     }
@@ -133,13 +128,40 @@ public class CatalogController {
     @DeleteMapping(value = "/products/{id}")
     public ResponseEntity<Void> deleteProduct(
             @Parameter(description = "Product ID", required = true) @PathVariable("id") String id) {
-
         String messageId = UUID.randomUUID().toString();
         log.info("messageId={} Starting DeleteProduct request", messageId);
-
         catalogService.deleteProduct(id);
-
         log.info("messageId={} DeleteProduct request completed successfully", messageId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get catalog report", description = "Queries all catalog data concurrently using @Async + CompletableFuture and returns a full report. Wall-clock time equals the slowest single query.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CatalogReportResponse.class)))
+    })
+    @GetMapping(value = "/catalog/report", produces = "application/json")
+    public ResponseEntity<CatalogReportResponse> getCatalogReport() {
+        String messageId = UUID.randomUUID().toString();
+        log.info("messageId={} Starting GetCatalogReport request", messageId);
+        CatalogReportResponse report = catalogReportService.buildReport(messageId);
+        log.info("messageId={} GetCatalogReport completed in {}ms", messageId, report.getBuildTimeMs());
+        return ResponseEntity.ok(report);
+    }
+
+    @Operation(summary = "Analyze catalog — Concurrency vs Parallelism demo", description = "Fetches all products once, then processes the data SEQUENTIALLY and in PARALLEL, returning timing results so you can observe the speedup from parallelStream(). See the 'explanation' field in the response for a human-readable summary.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Analysis completed",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CatalogAnalysisResponse.class)))
+    })
+    @GetMapping(value = "/catalog/analysis", produces = "application/json")
+    public ResponseEntity<CatalogAnalysisResponse> getCatalogAnalysis() {
+        String messageId = UUID.randomUUID().toString();
+        log.info("messageId={} Starting GetCatalogAnalysis request", messageId);
+        CatalogAnalysisResponse analysis = catalogAnalysisService.analyze(messageId);
+        log.info("messageId={} GetCatalogAnalysis completed — seq={}ms parallel={}ms speedup={}x", messageId, analysis.getSequentialProcessingMs(), analysis.getParallelProcessingMs(), analysis.getSpeedupFactor());
+        return ResponseEntity.ok(analysis);
     }
 }
