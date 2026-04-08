@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: gcr.io/PROJECT_ID/catalog-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: LoadBalancer
+  port: 8000
+
+env:
+  PORT: "8000"
+  LOGGER_ENVIRONMENT: "production"
+  LOGGER_LEVEL: "4"   # INFO level
+  LOGGER_NAMESPACE: "catalog-api"
+
+mongodb:
+  # This configuration feeds into the bitnami/mongodb subchart
+  enabled: true
+  auth:
+    rootPassword: "secretRootPassword"
+    username: "catalog_user"
+    password: "catalog_password"
+    database: "catalog"
+  architecture: standalone

@@ -1,0 +1,9 @@
+replicaCount: 2
+
+env:
+  LOGGER_ENVIRONMENT: "uat"
+  LOGGER_LEVEL: "4"  # INFO level for uat
+
+mongodb:
+  auth:
+    database: "catalog_uat"

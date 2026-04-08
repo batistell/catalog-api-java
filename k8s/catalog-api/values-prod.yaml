@@ -1,0 +1,12 @@
+replicaCount: 3
+
+env:
+  LOGGER_ENVIRONMENT: "production"
+  LOGGER_LEVEL: "4"  # INFO level for prod
+  
+mongodb:
+  auth:
+    database: "catalog_prod"
+    # IMPORTANTE: Em prod, as senhas e outras configs sensíveis 
+    # costumam ser injetadas por ferramentas como o Hashicorp Vault ou Google Secret Manager,
+    # não sendo commitadas diretamente aqui.

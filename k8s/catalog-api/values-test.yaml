@@ -1,0 +1,9 @@
+replicaCount: 1
+
+env:
+  LOGGER_ENVIRONMENT: "test"
+  LOGGER_LEVEL: "-1"  # DEBUG level for test
+
+mongodb:
+  auth:
+    database: "catalog_test"

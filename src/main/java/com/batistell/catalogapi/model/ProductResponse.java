@@ -1,0 +1,15 @@
+package com.batistell.catalogapi.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductResponse {
+    
+    private String message;
+    private Product data;
+
+}
