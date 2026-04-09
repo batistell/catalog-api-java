@@ -2,6 +2,8 @@ package com.batistell.catalogapi.service;
 
 import com.batistell.catalogapi.model.Product;
 import com.batistell.catalogapi.repository.CatalogRepository;
+import com.batistell.catalogapi.client.InventoryClient;
+import com.batistell.catalogapi.model.InventoryDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -12,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -23,6 +27,7 @@ public class CatalogService {
 
     private final CatalogRepository catalogRepository;
     private final KafkaProducerService kafkaProducerService;
+    private final InventoryClient inventoryClient;
 
     public void addProducts(String messageId, List<Product> products) {
         for (Product product : products) {
@@ -87,5 +92,20 @@ public class CatalogService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
+    }
+
+    public Map<String, Object> getProductWithStock(String id) {
+        Product product = getProductById(id);
+        InventoryDto stock = null;
+        try {
+            stock = inventoryClient.getInventoryByProductId(id);
+        } catch (Exception e) {
+            log.error("Failed to fetch stock for {}", id, e);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("product", product);
+        result.put("stock", stock);
+        return result;
     }
 }

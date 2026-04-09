@@ -176,4 +176,16 @@ public class CatalogController {
         catalogAnalysisService.analyzeWithStructuredConcurrency(messageId);
         return ResponseEntity.ok("Structured concurrency analysis initiated via Virtual Threads. Check API logs for execution output!");
     }
+
+    @Operation(summary = "Get product with stock", description = "Synchronous REST Call to Inventory API using Feign to fetch live stock for a product.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Product and Stock details retrieved successfully")
+    })
+    @GetMapping(value = "/products/{id}/stock", produces = "application/json")
+    public ResponseEntity<java.util.Map<String, Object>> getProductWithStock(
+            @Parameter(description = "Product ID", required = true) @PathVariable("id") String id) {
+        String messageId = UUID.randomUUID().toString();
+        log.info("messageId={} Starting GetProductWithStock request", messageId);
+        return ResponseEntity.ok(catalogService.getProductWithStock(id));
+    }
 }
