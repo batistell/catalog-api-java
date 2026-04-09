@@ -43,9 +43,6 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-volumes:
-  mongodb_data:
-
   prometheus:
     image: prom/prometheus:latest
     container_name: catalog_prometheus
@@ -65,3 +62,6 @@ volumes:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
+
+volumes:
+  mongodb_data:
