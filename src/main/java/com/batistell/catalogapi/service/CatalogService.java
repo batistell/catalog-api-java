@@ -12,6 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,15 +35,20 @@ public class CatalogService {
         }
     }
 
+    @CircuitBreaker(name = "catalogDB", fallbackMethod = "getAllProductsFallback")
+    @Retry(name = "catalogDB", fallbackMethod = "getAllProductsFallback")
     public List<Product> getAllProducts() {
-        try {
-            return catalogRepository.findAll();
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        }
+        return catalogRepository.findAll();
+    }
+
+    public List<Product> getAllProductsFallback(Exception e) {
+        log.warn("Database unavailable or rate limited. Returning empty cached product list. Error: {}", e.getMessage());
+        // In a real scenario, this could hit a secondary Redis cache or static fallback data.
+        return List.of();
     }
 
     @Cacheable(value = "products", key = "#id")
+    @CircuitBreaker(name = "catalogDB")
     public Product getProductById(String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "product ID cannot be empty");

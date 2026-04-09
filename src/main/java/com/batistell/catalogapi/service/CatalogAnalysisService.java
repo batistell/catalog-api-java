@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.concurrent.StructuredTaskScope;
+import java.util.concurrent.Callable;
 
 @Slf4j
 @Service
@@ -93,6 +95,51 @@ public class CatalogAnalysisService {
                 ));
         log.info("messageId={} [CONCURRENT] countPerRange done — ranges={}", messageId, result.size());
         return CompletableFuture.completedFuture(result);
+    }
+
+    public void analyzeWithStructuredConcurrency(String messageId) {
+        log.info("messageId={} [STRUCTURED_CONCURRENCY] Analysis started — virtual threads will be used", messageId);
+        List<Product> products = catalogRepository.findAll();
+        
+        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+            
+            StructuredTaskScope.Subtask<Map<String, Double>> avgPriceTask = scope.fork(() -> 
+                products.stream()
+                        .filter(p -> p.getCategory() != null && p.getCategory().getName() != null && p.getPrice() != null)
+                        .collect(Collectors.groupingBy(
+                                p -> p.getCategory().getName(),
+                                Collectors.averagingDouble(Product::getPrice)
+                        ))
+            );
+
+            StructuredTaskScope.Subtask<Map<String, Long>> countRangeTask = scope.fork(() -> 
+                products.stream()
+                        .filter(p -> p.getPrice() != null)
+                        .collect(Collectors.groupingBy(
+                                p -> {
+                                    double price = p.getPrice();
+                                    if (price < 50) return "budget (< $50)";
+                                    else if (price < 200) return "mid-range ($50–$200)";
+                                    else if (price < 500) return "premium ($200–$500)";
+                                    else return "luxury (> $500)";
+                                },
+                                Collectors.counting()
+                        ))
+            );
+
+            scope.join();
+            scope.throwIfFailed(); // Propagates failure directly cleanly if any subtask fails
+            
+            log.info("messageId={} [STRUCTURED_CONCURRENCY] Tasks completed perfectly on Virtual Threads!", messageId);
+            log.info("Category AVG: {}", avgPriceTask.get());
+            log.info("Ranges counts: {}", countRangeTask.get());
+            
+        } catch (InterruptedException e) {
+            log.error("messageId={} Structured concurrency was interrupted", messageId, e);
+            Thread.currentThread().interrupt();
+        } catch (java.util.concurrent.ExecutionException e) {
+            log.error("messageId={} One of the structured tasks failed", messageId, e);
+        }
     }
 
     private ProductStats buildStats(List<Product> products, boolean parallel) {

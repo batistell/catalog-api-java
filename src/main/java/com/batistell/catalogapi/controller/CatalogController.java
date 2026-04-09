@@ -164,4 +164,16 @@ public class CatalogController {
         log.info("messageId={} GetCatalogAnalysis completed — seq={}ms parallel={}ms speedup={}x", messageId, analysis.getSequentialProcessingMs(), analysis.getParallelProcessingMs(), analysis.getSpeedupFactor());
         return ResponseEntity.ok(analysis);
     }
+
+    @Operation(summary = "Analyze catalog — Java 21 Structured Concurrency Demo", description = "Executes analysis using Java 21's StructuredTaskScope which leverages virtual threads to aggregate results.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Analysis completed via virtual threads")
+    })
+    @GetMapping(value = "/catalog/analysis/structured")
+    public ResponseEntity<String> getCatalogAnalysisStructured() {
+        String messageId = UUID.randomUUID().toString();
+        log.info("messageId={} Starting GetCatalogAnalysisStructured request via Virtual Threads", messageId);
+        catalogAnalysisService.analyzeWithStructuredConcurrency(messageId);
+        return ResponseEntity.ok("Structured concurrency analysis initiated via Virtual Threads. Check API logs for execution output!");
+    }
 }
